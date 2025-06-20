@@ -15,48 +15,33 @@ app = FastAPI(
     version="1.0"
 )
 
-# 👇 Data model for POST input
 class TextInput(BaseModel):
     text: str
 
-
 @app.get("/", tags=["Root"])
 async def index():
-    """
-    Redirect to Swagger UI.
-    """
     return RedirectResponse(url="/docs")
-
 
 @app.get("/train", tags=["Training"])
 async def training():
-    """
-    Triggers the model training pipeline.
-    """
     try:
         train_pipeline = TrainPipeline()
         train_pipeline.run_pipeline()
         return Response(content="✅ Training completed successfully!", media_type="text/plain")
     except Exception as e:
+        print(f"❌ Training error: {e}")
         return Response(content=f"❌ Error during training: {e}", media_type="text/plain")
-
 
 @app.post("/predict", tags=["Prediction"])
 async def predict_route(input: TextInput):
-    """
-    Predicts if the input text is hate speech or not.
-    """
     try:
         text = input.text
         prediction_pipeline = PredictionPipeline()
         prediction = prediction_pipeline.run_pipeline(text)
         return {"prediction": prediction}
     except Exception as e:
-        raise CustomException(e, sys)
-
+        print(f"❌ Prediction error: {e}")  # 👈 LOG ERROR
+        return Response(content=f"❌ Internal server error: {e}", media_type="text/plain")
 
 if __name__ == "__main__":
-    # ✅ Fallback defaults for local run
-    host = APP_HOST if 'APP_HOST' in globals() else "127.0.0.1"
-    port = APP_PORT if 'APP_PORT' in globals() else 8000
-    uvicorn.run("app:app", host=host, port=port, reload=True)
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
